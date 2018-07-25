@@ -301,6 +301,12 @@ public:
    * the same key overriding existing.
    */
   virtual void setDynamicMetadata(const std::string& name, const ProtobufWkt::Struct& value) PURE;
+
+  /**
+   * More general dynamic metadata object.
+   * TODO(rdsmith): Replace uses of above with this object.
+   */
+  virtual DynamicMetadata& dynamicMetadata2() PURE;
 };
 
 } // namespace RequestInfo
