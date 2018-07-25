@@ -307,7 +307,7 @@ public:
    * TODO(rdsmith): Replace uses of above with this object.
    * @return the dynamic metadata associated with this request.
    */
-  virtual DynamicMetadata& dynamicMetadata2() PURE;
+  virtual const DynamicMetadata& dynamicMetadata2() const PURE;
 };
 
 } // namespace RequestInfo

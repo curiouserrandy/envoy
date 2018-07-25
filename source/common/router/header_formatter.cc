@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "envoy/request_info/string_accessor.h"
+
 #include "common/access_log/access_log_formatter.h"
 #include "common/common/fmt.h"
 #include "common/common/logger.h"
@@ -29,6 +31,12 @@ std::string formatUpstreamMetadataParseException(absl::string_view params,
                      "UPSTREAM_METADATA([\"namespace\", \"k\", ...]), actual format "
                      "UPSTREAM_METADATA{}{}",
                      params, reason);
+}
+
+std::string formatDynamicMetadataParseException(absl::string_view params) {
+  return fmt::format("Invalid header configuration. Expected format "
+                     "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                     "DYNAMIC_METADATA{}", params);
 }
 
 // Parses the parameters for UPSTREAM_METADATA and returns a function suitable for accessing the
@@ -113,6 +121,40 @@ parseUpstreamMetadataField(absl::string_view params_str) {
   };
 }
 
+// Parses the parameters for DYNAMIC_METADATA and returns a function suitable for accessing the
+// specified metadata from an RequestInfo::RequestInfo. Expects a string formatted as:
+//   ("<metadata_name>")
+// The metadata name is expected to be in reverse DNS format, though this is not enforced by
+// this function.
+std::function<std::string(const Envoy::RequestInfo::RequestInfo&)>
+parseDynamicMetadataField(absl::string_view param_str) {
+  param_str = StringUtil::trim(param_str);
+  if (param_str.empty() || param_str.front() != '(' || param_str.back() != ')') {
+    throw EnvoyException(formatDynamicMetadataParseException /* TODO */(param_str));
+  }
+
+  absl::string_view param_str2 = param_str.substr(1, param_str.size() - 2); // trim parens
+
+  if (param_str.empty() || param_str.front() != '"' || param_str.back() != '"') {
+    throw EnvoyException(formatDynamicMetadataParseException /* TODO */(param_str));
+  }
+
+  // trim quotes
+  std::string param = static_cast<std::string>(param_str2.substr(1, param_str.size() - 2)); 
+
+  // TODO?: Handle quoted strings inside quotes?  I really don't feel the urge.
+
+  return [param](const Envoy::RequestInfo::RequestInfo& request_info) -> std::string {
+    const Envoy::RequestInfo::DynamicMetadata& dynamic_metadata = request_info.dynamicMetadata2();
+
+    // TODO: Evaluate whether the behavior of throwing if there isn't any such entry in the
+    // DM is reasonable here.  If it is, catch&throw to make clear it's naming data that isn't
+    // there.
+    return static_cast<std::string>(
+        dynamic_metadata.getData<Envoy::RequestInfo::StringAccessor>(param).asString());
+  };
+}
+
 } // namespace
 
 RequestInfoHeaderFormatter::RequestInfoHeaderFormatter(absl::string_view field_name, bool append)
@@ -150,6 +192,9 @@ RequestInfoHeaderFormatter::RequestInfoHeaderFormatter(absl::string_view field_n
   } else if (field_name.find("UPSTREAM_METADATA") == 0) {
     field_extractor_ =
         parseUpstreamMetadataField(field_name.substr(STATIC_STRLEN("UPSTREAM_METADATA")));
+  } else if (field_name.find("DYNAMIC_METADATA") == 0) {
+    field_extractor_ =
+        parseDynamicMetadataField(field_name.substr(STATIC_STRLEN("DYNAMIC_METADATA")));
   } else {
     throw EnvoyException(fmt::format("field '{}' not supported as custom header", field_name));
   }
