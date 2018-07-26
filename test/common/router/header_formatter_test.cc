@@ -5,6 +5,8 @@
 
 #include "common/config/metadata.h"
 #include "common/config/rds_json.h"
+#include "common/request_info/dynamic_metadata_impl.h"
+#include "common/request_info/string_accessor_impl.h"
 #include "common/router/header_formatter.h"
 #include "common/router/header_parser.h"
 
@@ -165,6 +167,36 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithUpstreamMetadataVariableMis
   ON_CALL(request_info, upstreamHost()).WillByDefault(Return(host));
 
   testFormatting(request_info, "UPSTREAM_METADATA([\"namespace\", \"key\"])", "");
+}
+
+TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithDynamicMetadataVariable) {
+  Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
+  dynamic_metadata.setData<Envoy::RequestInfo::StringAccessor>(
+      "testing", std::make_unique<Envoy::RequestInfo::StringAccessorImpl>("test_value"));
+  EXPECT_EQ("test_value",
+            dynamic_metadata.getData<Envoy::RequestInfo::StringAccessor>("testing").asString());
+
+  NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
+  ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
+
+  testFormatting(request_info, "DYNAMIC_METADATA(\"testing\")", "test_value");
+  testFormatting(request_info, "DYNAMIC_METADATA(\"testing2\")", "");
+  EXPECT_EQ("test_value",
+            dynamic_metadata.getData<Envoy::RequestInfo::StringAccessor>("testing").asString());
+}
+
+TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithNonStringDynamicMetadataVariable) {
+  Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
+  dynamic_metadata.setData<int>("testing", std::make_unique<int>(1));
+  EXPECT_EQ(1, dynamic_metadata.getData<int>("testing"));
+
+  NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
+  ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
+
+  EXPECT_THROW_WITH_MESSAGE(
+      testFormatting(request_info, "DYNAMIC_METADATA(\"testing\")", ""),
+      EnvoyException,
+      "Invalid header information: DYNAMIC_METADATA value \"testing\" exists but is not string accessible");
 }
 
 TEST_F(RequestInfoHeaderFormatterTest, UnknownVariable) { testInvalidFormat("INVALID_VARIABLE"); }

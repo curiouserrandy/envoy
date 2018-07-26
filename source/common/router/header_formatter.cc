@@ -128,28 +128,39 @@ parseUpstreamMetadataField(absl::string_view params_str) {
 // this function.
 std::function<std::string(const Envoy::RequestInfo::RequestInfo&)>
 parseDynamicMetadataField(absl::string_view param_str) {
+  // TODO: Find a cleaner way to handle what follows.
   param_str = StringUtil::trim(param_str);
   if (param_str.empty() || param_str.front() != '(' || param_str.back() != ')') {
-    throw EnvoyException(formatDynamicMetadataParseException /* TODO */(param_str));
+    throw EnvoyException(formatDynamicMetadataParseException(param_str));
   }
 
   absl::string_view param_str2 = param_str.substr(1, param_str.size() - 2); // trim parens
 
-  if (param_str.empty() || param_str.front() != '"' || param_str.back() != '"') {
-    throw EnvoyException(formatDynamicMetadataParseException /* TODO */(param_str));
+  if (param_str2.empty() || param_str2.front() != '"' || param_str2.back() != '"') {
+    throw EnvoyException(formatDynamicMetadataParseException(param_str));
   }
 
   // trim quotes
-  std::string param = static_cast<std::string>(param_str2.substr(1, param_str.size() - 2)); 
+  std::string param = static_cast<std::string>(param_str2.substr(1, param_str2.size() - 2));
 
   // TODO?: Handle quoted strings inside quotes?  I really don't feel the urge.
 
   return [param](const Envoy::RequestInfo::RequestInfo& request_info) -> std::string {
     const Envoy::RequestInfo::DynamicMetadata& dynamic_metadata = request_info.dynamicMetadata2();
 
-    // TODO: Evaluate whether the behavior of throwing if there isn't any such entry in the
-    // DM is reasonable here.  If it is, catch&throw to make clear it's naming data that isn't
-    // there.
+    // No such value means don't output anything.
+    if (!dynamic_metadata.hasDataWithName(param)) {
+      return std::string();
+    }
+
+    // Value exists but isn't string accessible is a contract violation; throw an error.
+    if (!dynamic_metadata.hasData<Envoy::RequestInfo::StringAccessor>(param)) {
+      throw EnvoyException(
+          fmt::format("Invalid header information: DYNAMIC_METADATA value \"{}\" exists but is not string accessible",
+                      param));
+    }
+
+    std::cerr << "has: param |" << param << "|" << std::endl;
     return static_cast<std::string>(
         dynamic_metadata.getData<Envoy::RequestInfo::StringAccessor>(param).asString());
   };
