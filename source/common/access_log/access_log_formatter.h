@@ -6,6 +6,7 @@
 
 #include "envoy/access_log/access_log.h"
 #include "envoy/common/time.h"
+#include "envoy/request_info/dynamic_metadata.h"
 #include "envoy/request_info/request_info.h"
 
 #include "common/common/utility.h"
