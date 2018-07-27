@@ -226,7 +226,7 @@ envoy_cc_library(
     deps = [
 	"//include/envoy/request_info:dynamic_metadata_interface",
 	"//include/envoy/request_info:request_info_interface",
-	"//include/envoy/request_info:string_accessor_interface",
+	"//include/envoy/router:string_accessor_interface",
         "//source/common/access_log:access_log_formatter_lib",
         "//source/common/common:minimal_logger_lib",
         "//source/common/common:utility_lib",
@@ -235,3 +235,12 @@ envoy_cc_library(
         "//source/common/json:json_loader_lib",
     ],
 )
+
+envoy_cc_library(
+    name = "string_accessor_lib",
+    hdrs = ["string_accessor_impl.h"],
+    deps = [
+        "//include/envoy/router:string_accessor_interface",
+    ],
+)
+

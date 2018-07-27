@@ -5,7 +5,7 @@
 #include "absl/strings/string_view.h"
 
 namespace Envoy {
-namespace RequestInfo {
+namespace Router {
 
 /**
  * Contains a string in a form which is usable with DynamicMetadata and

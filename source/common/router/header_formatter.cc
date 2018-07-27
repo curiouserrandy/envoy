@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "envoy/request_info/string_accessor.h"
+#include "envoy/router/string_accessor.h"
 
 #include "common/access_log/access_log_formatter.h"
 #include "common/common/fmt.h"
@@ -154,7 +154,7 @@ parseDynamicMetadataField(absl::string_view param_str) {
     }
 
     // Value exists but isn't string accessible is a contract violation; throw an error.
-    if (!dynamic_metadata.hasData<Envoy::RequestInfo::StringAccessor>(param)) {
+    if (!dynamic_metadata.hasData<StringAccessor>(param)) {
       throw EnvoyException(
           fmt::format("Invalid header information: DYNAMIC_METADATA value \"{}\" exists but is not string accessible",
                       param));
@@ -162,7 +162,7 @@ parseDynamicMetadataField(absl::string_view param_str) {
 
     std::cerr << "has: param |" << param << "|" << std::endl;
     return static_cast<std::string>(
-        dynamic_metadata.getData<Envoy::RequestInfo::StringAccessor>(param).asString());
+        dynamic_metadata.getData<StringAccessor>(param).asString());
   };
 }
 

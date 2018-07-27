@@ -1,9 +1,9 @@
 #pragma once
 
-#include "envoy/request_info/string_accessor.h"
+#include "envoy/router/string_accessor.h"
 
 namespace Envoy {
-namespace RequestInfo {
+namespace Router {
 
 class StringAccessorImpl : public StringAccessor {
 public:
