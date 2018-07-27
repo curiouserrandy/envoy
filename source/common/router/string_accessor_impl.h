@@ -17,5 +17,5 @@ private:
   std::string value_;
 };
 
-} // namespace RequestInfo
+} // namespace Router
 } // namespace Envoy

@@ -171,18 +171,16 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithUpstreamMetadataVariableMis
 
 TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithDynamicMetadataVariable) {
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData<StringAccessor>(
-      "testing", std::make_unique<StringAccessorImpl>("test_value"));
-  EXPECT_EQ("test_value",
-            dynamic_metadata.getData<StringAccessor>("testing").asString());
+  dynamic_metadata.setData<StringAccessor>("testing",
+                                           std::make_unique<StringAccessorImpl>("test_value"));
+  EXPECT_EQ("test_value", dynamic_metadata.getData<StringAccessor>("testing").asString());
 
   NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
   testFormatting(request_info, "DYNAMIC_METADATA(\"testing\")", "test_value");
   testFormatting(request_info, "DYNAMIC_METADATA(\"testing2\")", "");
-  EXPECT_EQ("test_value",
-            dynamic_metadata.getData<StringAccessor>("testing").asString());
+  EXPECT_EQ("test_value", dynamic_metadata.getData<StringAccessor>("testing").asString());
 }
 
 TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithNonStringDynamicMetadataVariable) {
@@ -193,10 +191,10 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithNonStringDynamicMetadataVar
   NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
-  EXPECT_THROW_WITH_MESSAGE(
-      testFormatting(request_info, "DYNAMIC_METADATA(\"testing\")", ""),
-      EnvoyException,
-      "Invalid header information: DYNAMIC_METADATA value \"testing\" exists but is not string accessible");
+  EXPECT_THROW_WITH_MESSAGE(testFormatting(request_info, "DYNAMIC_METADATA(\"testing\")", ""),
+                            EnvoyException,
+                            "Invalid header information: DYNAMIC_METADATA value \"testing\" exists "
+                            "but is not string accessible");
 }
 
 TEST_F(RequestInfoHeaderFormatterTest, WrongFormatOnDynamicMetadataVariable) {
@@ -207,8 +205,7 @@ TEST_F(RequestInfoHeaderFormatterTest, WrongFormatOnDynamicMetadataVariable) {
                             "DYNAMIC_METADATA(\"<data_name>\"), actual format "
                             "DYNAMIC_METADATA(testing)");
   // No parameters
-  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA()", false),
-                            EnvoyException,
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA()", false), EnvoyException,
                             "Invalid header configuration. Expected format "
                             "DYNAMIC_METADATA(\"<data_name>\"), actual format "
                             "DYNAMIC_METADATA()");
@@ -433,8 +430,8 @@ TEST(HeaderParserTest, TestParseInternal) {
   ON_CALL(request_info, startTime()).WillByDefault(Return(start_time));
 
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData<StringAccessor>(
-      "testing", std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData<StringAccessor>("testing",
+                                           std::make_unique<StringAccessorImpl>("test_value"));
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
   for (const auto& test_case : test_cases) {
@@ -592,8 +589,8 @@ route:
   ON_CALL(*host, metadata()).WillByDefault(Return(metadata));
 
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData<StringAccessor>(
-      "testing", std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData<StringAccessor>("testing",
+                                           std::make_unique<StringAccessorImpl>("test_value"));
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
   req_header_parser->evaluateHeaders(headerMap, request_info);

@@ -36,7 +36,8 @@ std::string formatUpstreamMetadataParseException(absl::string_view params,
 std::string formatDynamicMetadataParseException(absl::string_view params) {
   return fmt::format("Invalid header configuration. Expected format "
                      "DYNAMIC_METADATA(\"<data_name>\"), actual format "
-                     "DYNAMIC_METADATA{}", params);
+                     "DYNAMIC_METADATA{}",
+                     params);
 }
 
 // Parses the parameters for UPSTREAM_METADATA and returns a function suitable for accessing the
@@ -137,7 +138,8 @@ parseDynamicMetadataField(absl::string_view param_str) {
   if (param_str2.empty() || param_str2.front() != '"' || param_str2.back() != '"') {
     throw EnvoyException(formatDynamicMetadataParseException(param_str));
   }
-  std::string param = static_cast<std::string>(param_str2.substr(1, param_str2.size() - 2)); // trim quotes
+  std::string param =
+      static_cast<std::string>(param_str2.substr(1, param_str2.size() - 2)); // trim quotes
 
   return [param](const Envoy::RequestInfo::RequestInfo& request_info) -> std::string {
     const Envoy::RequestInfo::DynamicMetadata& dynamic_metadata = request_info.dynamicMetadata2();
@@ -149,13 +151,12 @@ parseDynamicMetadataField(absl::string_view param_str) {
 
     // Value exists but isn't string accessible is a contract violation; throw an error.
     if (!dynamic_metadata.hasData<StringAccessor>(param)) {
-      throw EnvoyException(
-          fmt::format("Invalid header information: DYNAMIC_METADATA value \"{}\" exists but is not string accessible",
-                      param));
+      throw EnvoyException(fmt::format("Invalid header information: DYNAMIC_METADATA value \"{}\" "
+                                       "exists but is not string accessible",
+                                       param));
     }
 
-    return static_cast<std::string>(
-        dynamic_metadata.getData<StringAccessor>(param).asString());
+    return static_cast<std::string>(dynamic_metadata.getData<StringAccessor>(param).asString());
   };
 }
 

@@ -143,10 +143,10 @@ envoy_cc_test(
     deps = [
         "//source/common/config:metadata_lib",
         "//source/common/config:rds_json_lib",
-	"//source/common/request_info:dynamic_metadata_lib",
+        "//source/common/request_info:dynamic_metadata_lib",
         "//source/common/router:header_formatter_lib",
         "//source/common/router:header_parser_lib",
-	"//source/common/router:string_accessor_lib",
+        "//source/common/router:string_accessor_lib",
         "//test/mocks/http:http_mocks",
         "//test/mocks/upstream:upstream_mocks",
         "//test/test_common:utility_lib",

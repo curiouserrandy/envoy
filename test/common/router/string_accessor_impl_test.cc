@@ -13,5 +13,5 @@ TEST(StringAccessorImplTest, Storage) {
   EXPECT_EQ(TestString, accessor.asString());
 }
 
-} // namespace RequestInfo
+} // namespace Router
 } // namespace Envoy

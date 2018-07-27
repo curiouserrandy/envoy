@@ -136,7 +136,7 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
             absl::StrCat(format.substr(start, pos - start)), ch));
       }
       break;
-      
+
     case ParserState::StringElement:
     case ParserState::QuotedString:
       // Consume a JSON string (ignoring backslash-escaped chars).
@@ -150,9 +150,8 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
         // Skip escaped char.
         pos++;
       } else if (ch == '"') {
-        state = ((state == ParserState::StringElement) ?
-                 ParserState::ExpectArrayDelimiterOrEnd :
-                 ParserState::ExpectArgsEnd);
+        state = ((state == ParserState::StringElement) ? ParserState::ExpectArrayDelimiterOrEnd
+                                                       : ParserState::ExpectArgsEnd);
       }
       break;
 
