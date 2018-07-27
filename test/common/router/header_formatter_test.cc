@@ -199,6 +199,45 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithNonStringDynamicMetadataVar
       "Invalid header information: DYNAMIC_METADATA value \"testing\" exists but is not string accessible");
 }
 
+TEST_F(RequestInfoHeaderFormatterTest, WrongFormatOnDynamicMetadataVariable) {
+  // No quotes
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA(testing)", false),
+                            EnvoyException,
+                            "Invalid header configuration. Expected format "
+                            "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                            "DYNAMIC_METADATA(testing)");
+  // No parameters
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA()", false),
+                            EnvoyException,
+                            "Invalid header configuration. Expected format "
+                            "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                            "DYNAMIC_METADATA()");
+
+  // Missing single parens
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA(\"testing\"", false),
+                            EnvoyException,
+                            "Invalid header configuration. Expected format "
+                            "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                            "DYNAMIC_METADATA(\"testing\"");
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA\"testing\")", false),
+                            EnvoyException,
+                            "Invalid header configuration. Expected format "
+                            "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                            "DYNAMIC_METADATA\"testing\")");
+
+  // Missing single quotes
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA(\"testing)", false),
+                            EnvoyException,
+                            "Invalid header configuration. Expected format "
+                            "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                            "DYNAMIC_METADATA(\"testing)");
+  EXPECT_THROW_WITH_MESSAGE(RequestInfoHeaderFormatter("DYNAMIC_METADATA(testing\")", false),
+                            EnvoyException,
+                            "Invalid header configuration. Expected format "
+                            "DYNAMIC_METADATA(\"<data_name>\"), actual format "
+                            "DYNAMIC_METADATA(testing\")");
+}
+
 TEST_F(RequestInfoHeaderFormatterTest, UnknownVariable) { testInvalidFormat("INVALID_VARIABLE"); }
 
 TEST_F(RequestInfoHeaderFormatterTest, WrongFormatOnUpstreamMetadataVariable) {
@@ -274,6 +313,76 @@ TEST_F(RequestInfoHeaderFormatterTest, WrongFormatOnUpstreamMetadataVariable) {
       "does not match actual type 'Object'.");
 }
 
+#if 0
+TEST(HeaderParserTest, TestParseInternalSingular) {
+  struct TestCase {
+    std::string input_;
+    absl::optional<std::string> expected_output_;
+    absl::optional<std::string> expected_exception_;
+  };
+
+  static const TestCase test_cases[] = {
+      {"%UPSTREAM_METADATA([\"ns\", \"key\"])%", {"value"}, {}},
+      {"%UPSTREAM_METADATA(\"ns\", \"key\"])%", {"value"}, {}},
+      {"%DYNAMIC_METADATA(\"no extra space\")%",
+       {""},
+       {}},
+      {"%DYNAMIC_METADATA( \"extra space\")%",
+       {},
+       {"Invalid header configuration. Expected format DYNAMIC_METADATA(\"<data_name>\"), "
+        "actual format DYNAMIC_METADATA( \"extra space\")"}},
+  };
+
+  NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
+  absl::optional<Envoy::Http::Protocol> protocol = Envoy::Http::Protocol::Http11;
+  ON_CALL(request_info, protocol()).WillByDefault(ReturnPointee(&protocol));
+
+  std::shared_ptr<NiceMock<Envoy::Upstream::MockHostDescription>> host(
+      new NiceMock<Envoy::Upstream::MockHostDescription>());
+  ON_CALL(request_info, upstreamHost()).WillByDefault(Return(host));
+
+  // Metadata with percent signs in the key.
+  auto metadata = std::make_shared<envoy::api::v2::core::Metadata>(
+      TestUtility::parseYaml<envoy::api::v2::core::Metadata>(
+          R"EOF(
+        filter_metadata:
+          ns:
+            key: value
+      )EOF"));
+  ON_CALL(*host, metadata()).WillByDefault(Return(metadata));
+
+  // "2018-04-03T23:06:09.123Z".
+  const SystemTime start_time(std::chrono::milliseconds(1522796769123));
+  ON_CALL(request_info, startTime()).WillByDefault(Return(start_time));
+
+  for (const auto& test_case : test_cases) {
+    std::cerr << std::endl;
+    Protobuf::RepeatedPtrField<envoy::api::v2::core::HeaderValueOption> to_add;
+    envoy::api::v2::core::HeaderValueOption* header = to_add.Add();
+    header->mutable_header()->set_key("x-header");
+    header->mutable_header()->set_value(test_case.input_);
+
+    if (test_case.expected_exception_) {
+      EXPECT_FALSE(test_case.expected_output_);
+      EXPECT_THROW_WITH_MESSAGE(HeaderParser::configure(to_add), EnvoyException,
+                                test_case.expected_exception_.value());
+      continue;
+    }
+
+    HeaderParserPtr req_header_parser = HeaderParser::configure(to_add);
+
+    Http::TestHeaderMapImpl headerMap{{":method", "POST"}};
+    req_header_parser->evaluateHeaders(headerMap, request_info);
+
+    std::string descriptor = fmt::format("for test case input: {}", test_case.input_);
+
+    EXPECT_TRUE(headerMap.has("x-header")) << descriptor;
+    EXPECT_TRUE(test_case.expected_output_) << descriptor;
+    EXPECT_EQ(test_case.expected_output_.value(), headerMap.get_("x-header")) << descriptor;
+  }
+}  
+#endif
+
 TEST(HeaderParserTest, TestParseInternal) {
   struct TestCase {
     std::string input_;
@@ -343,6 +452,23 @@ TEST(HeaderParserTest, TestParseInternal) {
        {"Invalid header configuration. Expected format UPSTREAM_METADATA([\"namespace\", \"k\", "
         "...]), actual format UPSTREAM_METADATA( no array), because JSON supplied is not valid. "
         "Error(offset 2, line 1): Invalid value.\n"}},
+
+#if 0
+      {"%DYNAMIC_METADATA(no quotes)%",
+       {},
+       {"Invalid header configuration. Expected format DYNAMIC_METADATA(\"<data_name>\"), "
+        "actual format DYNAMIC_METADATA(no quotes)"}},
+
+      {"%DYNAMIC_METADATA\"no parens\"%",
+       {},
+       {"Invalid header configuration. Expected format DYNAMIC_METADATA(\"<data_name>\"), "
+        "actual format DYNAMIC_METADATA\"no parens\""}},
+
+      {"%DYNAMIC_METADATA( \"extra space\")%",
+       {},
+       {"Invalid header configuration. Expected format DYNAMIC_METADATA(\"<data_name>\"), "
+        "actual format DYNAMIC_METADATA( \"extra space\")"}},
+#endif
 
       // Invalid arguments
       {"%UPSTREAM_METADATA%",
