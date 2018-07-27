@@ -409,6 +409,7 @@ TEST(HeaderParserTest, TestParseInternal) {
       {"%UPSTREAM_METADATA([\"ns\", \t \"key\"])%", {"value"}, {}},
       {"%UPSTREAM_METADATA([\"ns\", \n \"key\"])%", {"value"}, {}},
       {"%UPSTREAM_METADATA( \t [ \t \"ns\" \t , \t \"key\" \t ] \t )%", {"value"}, {}},
+      {"%DYNAMIC_METADATA(\"testing\")%", {"test_value"}, {}},
       {"%START_TIME%", {"2018-04-03T23:06:09.123Z"}, {}},
 
       // Unescaped %
@@ -453,7 +454,6 @@ TEST(HeaderParserTest, TestParseInternal) {
         "...]), actual format UPSTREAM_METADATA( no array), because JSON supplied is not valid. "
         "Error(offset 2, line 1): Invalid value.\n"}},
 
-#if 0
       {"%DYNAMIC_METADATA(no quotes)%",
        {},
        {"Invalid header configuration. Expected format DYNAMIC_METADATA(\"<data_name>\"), "
@@ -468,7 +468,6 @@ TEST(HeaderParserTest, TestParseInternal) {
        {},
        {"Invalid header configuration. Expected format DYNAMIC_METADATA(\"<data_name>\"), "
         "actual format DYNAMIC_METADATA( \"extra space\")"}},
-#endif
 
       // Invalid arguments
       {"%UPSTREAM_METADATA%",
@@ -489,7 +488,7 @@ TEST(HeaderParserTest, TestParseInternal) {
       new NiceMock<Envoy::Upstream::MockHostDescription>());
   ON_CALL(request_info, upstreamHost()).WillByDefault(Return(host));
 
-  // Metadata with percent signs in the key.
+  // Upstream metadata with percent signs in the key.
   auto metadata = std::make_shared<envoy::api::v2::core::Metadata>(
       TestUtility::parseYaml<envoy::api::v2::core::Metadata>(
           R"EOF(
@@ -502,6 +501,11 @@ TEST(HeaderParserTest, TestParseInternal) {
   // "2018-04-03T23:06:09.123Z".
   const SystemTime start_time(std::chrono::milliseconds(1522796769123));
   ON_CALL(request_info, startTime()).WillByDefault(Return(start_time));
+
+  Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
+  dynamic_metadata.setData<StringAccessor>(
+      "testing", std::make_unique<StringAccessorImpl>("test_value"));
+  ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
   for (const auto& test_case : test_cases) {
     Protobuf::RepeatedPtrField<envoy::api::v2::core::HeaderValueOption> to_add;
@@ -631,6 +635,9 @@ route:
     - header:
         key: "x-metadata"
         value: "%UPSTREAM_METADATA([\"namespace\", \"%key%\"])%"
+    - header:
+        key: "x-dynamic"
+        value: "%DYNAMIC_METADATA(\"testing\")%"
   )EOF";
 
   HeaderParserPtr req_header_parser =
@@ -653,6 +660,11 @@ route:
             "%key%": value
       )EOF"));
   ON_CALL(*host, metadata()).WillByDefault(Return(metadata));
+
+  Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
+  dynamic_metadata.setData<StringAccessor>(
+      "testing", std::make_unique<StringAccessorImpl>("test_value"));
+  ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
   req_header_parser->evaluateHeaders(headerMap, request_info);
 
@@ -679,6 +691,9 @@ route:
 
   EXPECT_TRUE(headerMap.has("x-metadata"));
   EXPECT_EQ("value", headerMap.get_("x-metadata"));
+
+  EXPECT_TRUE(headerMap.has("x-dynamic"));
+  EXPECT_EQ("test_value", headerMap.get_("x-dynamic"));
 }
 
 TEST(HeaderParserTest, EvaluateHeadersWithAppendFalse) {
