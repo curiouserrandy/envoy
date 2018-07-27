@@ -19,34 +19,39 @@ namespace {
 enum class ParserState {
   Literal,                   // processing literal data
   VariableName,              // consuming a %VAR% name
-  ExpectArray,               // expect starting [ in %VAR([...])%
-  ExpectString,              // expect starting " in array of strings
-  String,                    // consuming an array element string
+  ExpectArrayOrString,       // expect starting [ in %VAR([...])% or " for a singular string.
+  ExpectStringElement,       // expect starting " in array of strings
+  QuotedString,              // Consuming a single argument quoted string
+  UnquotedString,            // Consuming a single argument unquoted string
+  StringElement,             // consuming an array element string
   ExpectArrayDelimiterOrEnd, // expect array delimiter (,) or end of array (])
   ExpectArgsEnd,             // expect closing ) in %VAR(...)%
   ExpectVariableEnd          // expect closing % in %VAR(...)%
 };
 
+#if 0
 std::string parserStateAsString(ParserState state) {
   switch(state) {
     case ParserState::Literal: return "Literal";
     case ParserState::VariableName: return "VariableName";
-    case ParserState::ExpectArray: return "ExpectArray";
-    case ParserState::ExpectString: return "ExpectString";
-    case ParserState::String: return "String";
+    case ParserState::ExpectArrayOrString: return "ExpectArrayOrString";
+    case ParserState::ExpectStringElement: return "ExpectStringElement";
+    case ParserState::StringElement: return "StringElement";
+    case ParserState::SingularString: return "SingularString";
     case ParserState::ExpectArrayDelimiterOrEnd: return "ExpectArrayDelimiterOrEnd";
     case ParserState::ExpectArgsEnd: return "ExpectArgsEnd";
     case ParserState::ExpectVariableEnd: return "ExpectVariableEnd";
   }
 }
+#endif
 
 std::string unescape(absl::string_view sv) { return absl::StrReplaceAll(sv, {{"%%", "%"}}); }
 
 // Implements a state machine to parse custom headers. Each character of the custom header format
-// is either literal text (with % escaped as %%) or part of a %VAR% or %VAR(["args"])% expression.
-// The statement machine does minimal validation of the arguments (if any) and does not know the
-// names of valid variables. Interpretation of the variable name and arguments is delegated to
-// RequestInfoHeaderFormatter.
+// is either literal text (with % escaped as %%) or part of a %VAR%, %VAR(arg), %VAR("arg"), or
+// %VAR(["arg1", "arg2", ...])% expression. The statement machine does minimal validation of the
+// arguments (if any) and does not know the names of valid variables. Interpretation of the
+// variable name and arguments is delegated to RequestInfoHeaderFormatter.
 HeaderFormatterPtr
 parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option) {
   const bool append = PROTOBUF_GET_WRAPPED_OR_DEFAULT(header_value_option, append, true);
@@ -64,7 +69,7 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
     const char ch = format[pos];
     const bool has_next_ch = (pos + 1) < format.size();
 
-    std::cerr << " " << parserStateAsString(state);
+    // std::cerr << " " << parserStateAsString(state);
     switch (state) {
     case ParserState::Literal:
       // Searching for start of %VARIABLE% expression.
@@ -106,25 +111,28 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
 
       if (ch == '(') {
         // Variable with arguments, search for start of arg array.
-        state = ParserState::ExpectArray;
+        state = ParserState::ExpectArrayOrString;
       }
       break;
 
-    case ParserState::ExpectArray:
-      // Skip over whitespace searching for the start of JSON array args.
+    case ParserState::ExpectArrayOrString:
+      // Look for an argument that is either an array of strings or a string,
+      // skipping over whitespace.
       if (ch == '[') {
         // Search for first argument string
-        state = ParserState::ExpectString;
-      } else if (!isspace(ch)) {
+        state = ParserState::ExpectStringElement;
+      } else if (ch == '"') {
         // Consume it as a string argument.
-        state = ParserState::String;
+        state = ParserState::QuotedString;
+      } else if (!isspace(ch)) {
+        state = ParserState::UnquotedString;
       }
       break;
 
     case ParserState::ExpectArrayDelimiterOrEnd:
       // Skip over whitespace searching for a comma or close bracket.
       if (ch == ',') {
-        state = ParserState::ExpectString;
+        state = ParserState::ExpectStringElement;
       } else if (ch == ']') {
         state = ParserState::ExpectArgsEnd;
       } else if (!isspace(ch)) {
@@ -135,18 +143,19 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
       }
       break;
 
-    case ParserState::ExpectString:
+    case ParserState::ExpectStringElement:
       // Skip over whitespace looking for the starting quote of a JSON string.
       if (ch == '"') {
-        state = ParserState::String;
+        state = ParserState::StringElement;
       } else if (!isspace(ch)) {
         throw EnvoyException(fmt::format(
             "Invalid header configuration. Expecting '\"' or whitespace after '{}', but found '{}'",
             absl::StrCat(format.substr(start, pos - start)), ch));
       }
       break;
-
-    case ParserState::String:
+      
+    case ParserState::StringElement:
+    case ParserState::QuotedString:
       // Consume a JSON string (ignoring backslash-escaped chars).
       if (ch == '\\') {
         if (!has_next_ch) {
@@ -157,10 +166,16 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
 
         // Skip escaped char.
         pos++;
-      } else if (ch == ')') {
-        state = ParserState::ExpectVariableEnd;
       } else if (ch == '"') {
-        state = ParserState::ExpectArrayDelimiterOrEnd;
+        state = ((state == ParserState::StringElement) ?
+                 ParserState::ExpectArrayDelimiterOrEnd :
+                 ParserState::ExpectArgsEnd);
+      }
+      break;
+
+    case ParserState::UnquotedString:
+      if (ch == ')') {
+        state = ParserState::ExpectVariableEnd;
       }
       break;
 
