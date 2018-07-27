@@ -29,22 +29,6 @@ enum class ParserState {
   ExpectVariableEnd          // expect closing % in %VAR(...)%
 };
 
-#if 0
-std::string parserStateAsString(ParserState state) {
-  switch(state) {
-    case ParserState::Literal: return "Literal";
-    case ParserState::VariableName: return "VariableName";
-    case ParserState::ExpectArrayOrString: return "ExpectArrayOrString";
-    case ParserState::ExpectStringElement: return "ExpectStringElement";
-    case ParserState::StringElement: return "StringElement";
-    case ParserState::SingularString: return "SingularString";
-    case ParserState::ExpectArrayDelimiterOrEnd: return "ExpectArrayDelimiterOrEnd";
-    case ParserState::ExpectArgsEnd: return "ExpectArgsEnd";
-    case ParserState::ExpectVariableEnd: return "ExpectVariableEnd";
-  }
-}
-#endif
-
 std::string unescape(absl::string_view sv) { return absl::StrReplaceAll(sv, {{"%%", "%"}}); }
 
 // Implements a state machine to parse custom headers. Each character of the custom header format
@@ -69,7 +53,6 @@ parseInternal(const envoy::api::v2::core::HeaderValueOption& header_value_option
     const char ch = format[pos];
     const bool has_next_ch = (pos + 1) < format.size();
 
-    // std::cerr << " " << parserStateAsString(state);
     switch (state) {
     case ParserState::Literal:
       // Searching for start of %VARIABLE% expression.

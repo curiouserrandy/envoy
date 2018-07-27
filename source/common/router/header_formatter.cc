@@ -128,22 +128,16 @@ parseUpstreamMetadataField(absl::string_view params_str) {
 // this function.
 std::function<std::string(const Envoy::RequestInfo::RequestInfo&)>
 parseDynamicMetadataField(absl::string_view param_str) {
-  // TODO: Find a cleaner way to handle what follows.
   param_str = StringUtil::trim(param_str);
   if (param_str.empty() || param_str.front() != '(' || param_str.back() != ')') {
     throw EnvoyException(formatDynamicMetadataParseException(param_str));
   }
-
   absl::string_view param_str2 = param_str.substr(1, param_str.size() - 2); // trim parens
 
   if (param_str2.empty() || param_str2.front() != '"' || param_str2.back() != '"') {
     throw EnvoyException(formatDynamicMetadataParseException(param_str));
   }
-
-  // trim quotes
-  std::string param = static_cast<std::string>(param_str2.substr(1, param_str2.size() - 2));
-
-  // TODO?: Handle quoted strings inside quotes?  I really don't feel the urge.
+  std::string param = static_cast<std::string>(param_str2.substr(1, param_str2.size() - 2)); // trim quotes
 
   return [param](const Envoy::RequestInfo::RequestInfo& request_info) -> std::string {
     const Envoy::RequestInfo::DynamicMetadata& dynamic_metadata = request_info.dynamicMetadata2();
@@ -160,7 +154,6 @@ parseDynamicMetadataField(absl::string_view param_str) {
                       param));
     }
 
-    std::cerr << "has: param |" << param << "|" << std::endl;
     return static_cast<std::string>(
         dynamic_metadata.getData<StringAccessor>(param).asString());
   };
