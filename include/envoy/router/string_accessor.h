@@ -9,7 +9,8 @@ namespace Router {
 
 /**
  * Contains a string in a form which is usable with DynamicMetadata and
- * allows lazy evaluation if needed.
+ * allows lazy evaluation if needed.  All values meant to be accessible to the 
+ * custom request/response header mechanism must use this type.
  */
 class StringAccessor {
 public:
