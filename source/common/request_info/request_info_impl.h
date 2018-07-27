@@ -179,6 +179,7 @@ struct RequestInfoImpl : public RequestInfo {
     (*metadata_.mutable_filter_metadata())[name].MergeFrom(value);
   };
 
+  DynamicMetadata& dynamicMetadata2() override { return metadata2_; }
   const DynamicMetadata& dynamicMetadata2() const override { return metadata2_; }
 
   const SystemTime start_time_;
