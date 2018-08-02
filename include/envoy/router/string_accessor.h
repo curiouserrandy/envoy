@@ -1,6 +1,7 @@
 #pragma once
 
 #include "envoy/common/pure.h"
+#include "envoy/request_info/dynamic_metadata.h"
 
 #include "absl/strings/string_view.h"
 
@@ -12,10 +13,8 @@ namespace Router {
  * allows lazy evaluation if needed. All values meant to be accessible to the
  * custom request/response header mechanism must use this type.
  */
-class StringAccessor {
+class StringAccessor : public ::Envoy::RequestInfo::DynamicMetadata::Object {
 public:
-  virtual ~StringAccessor(){};
-
   /**
    * @return the string the accessor represents.
    */
