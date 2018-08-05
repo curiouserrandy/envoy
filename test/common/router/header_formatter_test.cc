@@ -171,8 +171,7 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithUpstreamMetadataVariableMis
 
 TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithDynamicMetadataVariable) {
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData("testing",
-                                           std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData("testing", std::make_unique<StringAccessorImpl>("test_value"));
   EXPECT_EQ("test_value", dynamic_metadata.getData<StringAccessor>("testing").asString());
 
   NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
@@ -187,12 +186,12 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithDynamicMetadataVariable) {
 namespace {
 
 class IntAccessor : public ::Envoy::RequestInfo::DynamicMetadata::Object {
- public:
+public:
   IntAccessor(int value) : value_(value) {}
 
   int access() const { return value_; }
 
- private:
+private:
   int value_;
 };
 
@@ -446,8 +445,7 @@ TEST(HeaderParserTest, TestParseInternal) {
   ON_CALL(request_info, startTime()).WillByDefault(Return(start_time));
 
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData("testing",
-                                           std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData("testing", std::make_unique<StringAccessorImpl>("test_value"));
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
   ON_CALL(Const(request_info), dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
@@ -606,8 +604,7 @@ route:
   ON_CALL(*host, metadata()).WillByDefault(Return(metadata));
 
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData("testing",
-                                           std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData("testing", std::make_unique<StringAccessorImpl>("test_value"));
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
   ON_CALL(Const(request_info), dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 

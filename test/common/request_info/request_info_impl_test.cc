@@ -118,11 +118,12 @@ TEST(RequestInfoImplTest, ResponseFlagTest) {
 namespace {
 
 class IntAccessor : public DynamicMetadata::Object {
- public:
+public:
   IntAccessor(int value) : value_(value) {}
 
   int access() const { return value_; }
- private:
+
+private:
   int value_;
 };
 
