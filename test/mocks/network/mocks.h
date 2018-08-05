@@ -12,7 +12,7 @@
 #include "envoy/network/resolver.h"
 #include "envoy/network/transport_socket.h"
 
-#include "common/stats/stats_impl.h"
+#include "common/stats/isolated_store_impl.h"
 
 #include "test/mocks/event/mocks.h"
 #include "test/test_common/printers.h"
@@ -409,8 +409,8 @@ public:
     return asString() == other.asString();
   }
 
-  MOCK_CONST_METHOD1(bind, int(int));
-  MOCK_CONST_METHOD1(connect, int(int));
+  MOCK_CONST_METHOD1(bind, Api::SysCallResult(int));
+  MOCK_CONST_METHOD1(connect, Api::SysCallResult(int));
   MOCK_CONST_METHOD0(ip, Address::Ip*());
   MOCK_CONST_METHOD1(socket, int(Address::SocketType));
   MOCK_CONST_METHOD0(type, Address::Type());
