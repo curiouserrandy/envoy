@@ -385,7 +385,7 @@ MetadataFormatter::MetadataFormatter(const std::string& filter_namespace,
                                      absl::optional<size_t> max_length)
     : filter_namespace_(filter_namespace), path_(path), max_length_(max_length) {}
 
-std::string MetadataFormatter::format(const envoy::api::v2::core::Metadata& metadata) const {
+std::string MetadataFormatter::format(const ::Envoy::RequestInfo::DynamicMetadata& metadata) const {
   const Protobuf::Message* data;
   if (path_.empty()) {
     const auto filter_it = metadata.filter_metadata().find(filter_namespace_);

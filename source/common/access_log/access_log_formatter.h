@@ -191,7 +191,7 @@ public:
   MetadataFormatter(const std::string& filter_namespace, const std::vector<std::string>& path,
                     absl::optional<size_t> max_length);
 
-  std::string format(const envoy::api::v2::core::Metadata& metadata) const;
+  std::string format(const ::Envoy::RequestInfo::DynamicMetadata& metadata) const;
 
 private:
   std::string filter_namespace_;
