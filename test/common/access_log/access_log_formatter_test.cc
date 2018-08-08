@@ -18,6 +18,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+using testing::Const;
 using testing::NiceMock;
 using testing::Return;
 using testing::ReturnRef;
@@ -390,6 +391,7 @@ TEST(AccessLogFormatterTest, CompositeFormatterSuccess) {
     ::Envoy::RequestInfo::DynamicMetadataImpl metadata;
     populateMetadataTestData(metadata);
     EXPECT_CALL(request_info, dynamicMetadata2()).WillRepeatedly(ReturnRef(metadata));
+    EXPECT_CALL(Const(request_info), dynamicMetadata2()).WillRepeatedly(ReturnRef(metadata));
     const std::string format = "%DYNAMIC_METADATA(\"com.test.test_key\")%|%DYNAMIC_METADATA(\"com.test."
                                "test_key\"):5%";
     FormatterImpl formatter(format);

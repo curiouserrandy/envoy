@@ -147,7 +147,7 @@ void AccessLogFormatParser::parseString(const std::string& token, const size_t s
     throw EnvoyException(
         fmt::format("String argument parsed, but no trailing ')' found: {}", token));
   }
-  main = token.substr(start+1, trailing_quote);
+  main = token.substr(start+1, trailing_quote-(start+1));
 
   if (token.size() == trailing_quote+2 || token[trailing_quote+2] != ':') {
     return;
@@ -431,7 +431,8 @@ std::string MetadataFormatter::format(const ::Envoy::RequestInfo::DynamicMetadat
 // See: https://github.com/envoyproxy/envoy/issues/3006
 DynamicMetadataFormatter::DynamicMetadataFormatter(const std::string& token_name,
                                                    absl::optional<size_t> max_length)
-    : MetadataFormatter(token_name, max_length) {}
+    : MetadataFormatter(token_name, max_length) {
+}
 
 std::string DynamicMetadataFormatter::format(const Http::HeaderMap&, const Http::HeaderMap&,
                                              const Http::HeaderMap&,
