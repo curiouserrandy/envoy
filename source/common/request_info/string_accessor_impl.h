@@ -1,9 +1,9 @@
 #pragma once
 
-#include "envoy/router/string_accessor.h"
+#include "envoy/request_info/string_accessor.h"
 
 namespace Envoy {
-namespace Router {
+namespace RequestInfo {
 
 class StringAccessorImpl : public StringAccessor {
 public:
@@ -16,5 +16,5 @@ private:
   std::string value_;
 };
 
-} // namespace Router
+} // namespace RequestInfo
 } // namespace Envoy

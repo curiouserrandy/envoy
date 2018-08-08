@@ -152,11 +152,3 @@ envoy_cc_test(
         "//test/test_common:utility_lib",
     ],
 )
-
-envoy_cc_test(
-    name = "string_accessor_impl_test",
-    srcs = ["string_accessor_impl_test.cc"],
-    deps = [
-        "//source/common/router:string_accessor_lib",
-    ],
-)

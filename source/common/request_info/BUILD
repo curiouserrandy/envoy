@@ -37,3 +37,11 @@ envoy_cc_library(
         "//include/envoy/request_info:request_info_interface",
     ],
 )
+
+envoy_cc_library(
+    name = "string_accessor_lib",
+    hdrs = ["string_accessor_impl.h"],
+    deps = [
+        "//include/envoy/request_info:string_accessor_interface",
+    ],
+)

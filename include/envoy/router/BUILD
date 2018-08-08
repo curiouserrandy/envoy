@@ -66,11 +66,3 @@ envoy_cc_library(
     deps = ["//include/envoy/http:message_interface"],
 )
 
-envoy_cc_library(
-    name = "string_accessor_interface",
-    hdrs = ["string_accessor.h"],
-    external_deps = ["abseil_optional"],
-    deps = [
-        "//include/envoy/request_info:dynamic_metadata_interface",
-    ],
-)

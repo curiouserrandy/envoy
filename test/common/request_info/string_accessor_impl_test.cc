@@ -1,10 +1,10 @@
-#include "common/router/string_accessor_impl.h"
+#include "common/request_info/string_accessor_impl.h"
 
 #include "absl/strings/string_view.h"
 #include "gtest/gtest.h"
 
 namespace Envoy {
-namespace Router {
+namespace RequestInfo {
 
 TEST(StringAccessorImplTest, Storage) {
   const char* const TestString = "test string 1";
@@ -13,5 +13,5 @@ TEST(StringAccessorImplTest, Storage) {
   EXPECT_EQ(TestString, accessor.asString());
 }
 
-} // namespace Router
+} // namespace RequestInfo
 } // namespace Envoy
