@@ -23,6 +23,8 @@ envoy_cc_test(
         "//source/common/access_log:access_log_formatter_lib",
         "//source/common/common:utility_lib",
         "//source/common/http:header_map_lib",
+        "//source/common/request_info:dynamic_metadata_lib",
+        "//source/common/request_info:string_accessor_lib",
         "//test/mocks/http:http_mocks",
         "//test/mocks/request_info:request_info_mocks",
         "//test/mocks/upstream:upstream_mocks",

@@ -138,14 +138,14 @@ void AccessLogFormatParser::parseString(const std::string& token, const size_t s
   }
 
   // TODO(rdsmith): Maybe at some point handle escaped characters in the string?
-  size_t trailing_quote = token.find('"', start);
+  size_t trailing_quote = token.find('"', start+1);
   if (trailing_quote == std::string::npos) {
     throw EnvoyException(
         fmt::format("String argument expected, but no trailing '\"' found: {}", token));
   }
   if (token.size() < trailing_quote + 2 || token[trailing_quote+1] != ')') {
     throw EnvoyException(
-        fmt::format("String argument expected, but no trailing ')' found: {}", token));
+        fmt::format("String argument parsed, but no trailing ')' found: {}", token));
   }
   main = token.substr(start+1, trailing_quote);
 
@@ -416,8 +416,15 @@ MetadataFormatter::MetadataFormatter(const std::string& token_name,
     : token_name_(token_name), max_length_(max_length) {}
 
 std::string MetadataFormatter::format(const ::Envoy::RequestInfo::DynamicMetadata& metadata) const {
-  return static_cast<std::string>(
-      metadata.getData<::Envoy::RequestInfo::StringAccessor>(token_name_).asString());
+  if (!metadata.hasDataWithName(token_name_)) {
+    return UnspecifiedValueString;
+  }
+  std::string result(static_cast<std::string>(
+      metadata.getData<::Envoy::RequestInfo::StringAccessor>(token_name_).asString()));
+  if (max_length_ && result.length() > max_length_.value()) {
+    return result.substr(0, max_length_.value());
+  }
+  return result;
 }
 
 // TODO(glicht): Consider adding support for route/listener/cluster metadata as suggested by @htuch.
