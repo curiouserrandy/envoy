@@ -130,6 +130,39 @@ void AccessLogFormatParser::parseCommand(const std::string& token, const size_t 
   }
 }
 
+void AccessLogFormatParser::parseString(const std::string& token, const size_t start,
+                                        std::string& main, absl::optional<size_t>& max_length) {
+  if (token[start] != '"') {
+    throw EnvoyException(
+        fmt::format("String argument expected, but no leading '\"' found: {}", token));
+  }
+  ++start;
+
+  // TODO(rdsmith): Maybe at some point handle escaped characters in the string?
+  size_t trailing_quote = token.find('"', start);
+  if (trailing_quote == std::npos) {
+    throw EnvoyException(
+        fmt::format("String argument expected, but no trailing '\"' found: {}", token));
+  }
+  if (token.size() < trailing_quote + 2 || token[trailing_quote+1] != ')') {
+    throw EnvoyException(
+        fmt::format("String argument expected, but no trailing ')' found: {}", token));
+  }
+  main = token.substr(start+1, trailing_quote);
+
+  if (token.size() == trailing_quote+2 || token[trailing_quote+2] != ':') {
+    return;
+  }
+
+  std::string length_str = token.substr(trailing_quote+3);
+  uint64_t length_value;
+  if (!StringUtil::atoul(length_str.c_str(), length_value)) {
+    throw EnvoyException(fmt::format("Length must be an integer, given: {}", length_str));
+  }
+  max_length = length_value;
+}
+
+
 // TODO(derekargueta): #2967 - Rewrite AccessLogformatter with parser library & formal grammar
 std::vector<FormatterPtr> AccessLogFormatParser::parse(const std::string& format) {
   std::string current_token;
@@ -182,13 +215,12 @@ std::vector<FormatterPtr> AccessLogFormatParser::parse(const std::string& format
         formatters.emplace_back(
             new ResponseTrailerFormatter(main_header, alternative_header, max_length));
       } else if (token.find(DYNAMIC_META_TOKEN) == 0) {
-        std::string filter_namespace;
+        std::string token_name;
         absl::optional<size_t> max_length;
-        std::vector<std::string> path;
         const size_t start = DYNAMIC_META_TOKEN.size();
 
-        parseCommand(token, start, ":", filter_namespace, path, max_length);
-        formatters.emplace_back(new DynamicMetadataFormatter(filter_namespace, path, max_length));
+        parseString(token, start, token_name, max_length);
+        formatters.emplace_back(new DynamicMetadataFormatter(token_name, max_length));
       } else if (token.find("START_TIME") == 0) {
         const size_t parameters_length = pos + StartTimeParamStart + 1;
         const size_t parameters_end = command_end_position - parameters_length;
@@ -380,41 +412,19 @@ std::string ResponseTrailerFormatter::format(const Http::HeaderMap&, const Http:
   return HeaderFormatter::format(response_trailers);
 }
 
-MetadataFormatter::MetadataFormatter(const std::string& filter_namespace,
-                                     const std::vector<std::string>& path,
+MetadataFormatter::MetadataFormatter(const std::string& token_name,
                                      absl::optional<size_t> max_length)
-    : filter_namespace_(filter_namespace), path_(path), max_length_(max_length) {}
+    : token_name_(token_name), max_length_(max_length) {}
 
 std::string MetadataFormatter::format(const ::Envoy::RequestInfo::DynamicMetadata& metadata) const {
-  const Protobuf::Message* data;
-  if (path_.empty()) {
-    const auto filter_it = metadata.filter_metadata().find(filter_namespace_);
-    if (filter_it == metadata.filter_metadata().end()) {
-      return UnspecifiedValueString;
-    }
-    data = &(filter_it->second);
-  } else {
-    const ProtobufWkt::Value& val = Metadata::metadataValue(metadata, filter_namespace_, path_);
-    if (val.kind_case() == ProtobufWkt::Value::KindCase::KIND_NOT_SET) {
-      return UnspecifiedValueString;
-    }
-    data = &val;
-  }
-  ProtobufTypes::String json;
-  const auto status = Protobuf::util::MessageToJsonString(*data, &json);
-  RELEASE_ASSERT(status.ok(), "");
-  if (max_length_ && json.length() > max_length_.value()) {
-    return json.substr(0, max_length_.value());
-  }
-  return json;
+  return metadata.getData<::Envoy::RequestInfo::StringAccessor>(token_name_).asString();
 }
 
 // TODO(glicht): Consider adding support for route/listener/cluster metadata as suggested by @htuch.
 // See: https://github.com/envoyproxy/envoy/issues/3006
-DynamicMetadataFormatter::DynamicMetadataFormatter(const std::string& filter_namespace,
-                                                   const std::vector<std::string>& path,
+DynamicMetadataFormatter::DynamicMetadataFormatter(const std::string& token_name,
                                                    absl::optional<size_t> max_length)
-    : MetadataFormatter(filter_namespace, path, max_length) {}
+    : MetadataFormatter(token_name, max_length) {}
 
 std::string DynamicMetadataFormatter::format(const Http::HeaderMap&, const Http::HeaderMap&,
                                              const Http::HeaderMap&,

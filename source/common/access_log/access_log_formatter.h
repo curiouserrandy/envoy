@@ -59,6 +59,19 @@ private:
                            const std::string& separator, std::string& main,
                            std::vector<std::string>& sub_items, absl::optional<size_t>& max_length);
 
+  /**
+   * Parse a string argument.  Will parse token from start position. Token is expected to start 
+   * with '"' and end with '")'.  An optional ":max_length" may be specified after the closing ')' 
+   * char. 
+   * 
+   * @param token the token to parse
+   * @param start the index to start parsing from
+   * @param main the value found.
+   * @param max_length optional max_length will be populated if specified.
+   */
+  static void parseString(const std::string& token, const size_t start,
+                          std::string& main, absl::optional<size_t>& max_length);
+
   // the indexes of where the parameters for each directive is expected to begin
   static const size_t ReqParamStart{std::strlen("REQ(")};
   static const size_t RespParamStart{std::strlen("RESP(")};
@@ -188,14 +201,12 @@ private:
  */
 class MetadataFormatter {
 public:
-  MetadataFormatter(const std::string& filter_namespace, const std::vector<std::string>& path,
-                    absl::optional<size_t> max_length);
+  MetadataFormatter(const std::string& token_name, absl::optional<size_t> max_length);
 
   std::string format(const ::Envoy::RequestInfo::DynamicMetadata& metadata) const;
 
 private:
-  std::string filter_namespace_;
-  std::vector<std::string> path_;
+  std::string token_name_;
   absl::optional<size_t> max_length_;
 };
 
@@ -204,8 +215,7 @@ private:
  */
 class DynamicMetadataFormatter : public Formatter, MetadataFormatter {
 public:
-  DynamicMetadataFormatter(const std::string& filter_namespace,
-                           const std::vector<std::string>& path, absl::optional<size_t> max_length);
+  DynamicMetadataFormatter(const std::string& token_name, absl::optional<size_t> max_length);
 
   // Formatter::format
   std::string format(const Http::HeaderMap&, const Http::HeaderMap&, const Http::HeaderMap&,
