@@ -4,17 +4,17 @@
 #include <string>
 #include <vector>
 
+#include "envoy/request_info/dynamic_metadata.h"
+#include "envoy/request_info/string_accessor.h"
+
 #include "common/common/assert.h"
 #include "common/common/fmt.h"
 #include "common/common/utility.h"
-#include "common/config/metadata.h"
 #include "common/http/utility.h"
 #include "common/request_info/utility.h"
 
 #include "absl/strings/str_split.h"
 #include "fmt/format.h"
-
-using Envoy::Config::Metadata;
 
 namespace Envoy {
 namespace AccessLog {
@@ -136,11 +136,10 @@ void AccessLogFormatParser::parseString(const std::string& token, const size_t s
     throw EnvoyException(
         fmt::format("String argument expected, but no leading '\"' found: {}", token));
   }
-  ++start;
 
   // TODO(rdsmith): Maybe at some point handle escaped characters in the string?
   size_t trailing_quote = token.find('"', start);
-  if (trailing_quote == std::npos) {
+  if (trailing_quote == std::string::npos) {
     throw EnvoyException(
         fmt::format("String argument expected, but no trailing '\"' found: {}", token));
   }
@@ -417,7 +416,8 @@ MetadataFormatter::MetadataFormatter(const std::string& token_name,
     : token_name_(token_name), max_length_(max_length) {}
 
 std::string MetadataFormatter::format(const ::Envoy::RequestInfo::DynamicMetadata& metadata) const {
-  return metadata.getData<::Envoy::RequestInfo::StringAccessor>(token_name_).asString();
+  return static_cast<std::string>(
+      metadata.getData<::Envoy::RequestInfo::StringAccessor>(token_name_).asString());
 }
 
 // TODO(glicht): Consider adding support for route/listener/cluster metadata as suggested by @htuch.
@@ -429,7 +429,7 @@ DynamicMetadataFormatter::DynamicMetadataFormatter(const std::string& token_name
 std::string DynamicMetadataFormatter::format(const Http::HeaderMap&, const Http::HeaderMap&,
                                              const Http::HeaderMap&,
                                              const RequestInfo::RequestInfo& request_info) const {
-  return MetadataFormatter::format(request_info.dynamicMetadata());
+  return MetadataFormatter::format(request_info.dynamicMetadata2());
 }
 
 StartTimeFormatter::StartTimeFormatter(const std::string& format) : date_formatter_(format) {}

@@ -14,10 +14,11 @@ envoy_cc_library(
     hdrs = ["access_log_formatter.h"],
     deps = [
         "//include/envoy/access_log:access_log_interface",
+        "//include/envoy/request_info:dynamic_metadata_interface",
         "//include/envoy/request_info:request_info_interface",
+        "//include/envoy/request_info:string_accessor_interface",
         "//source/common/common:assert_lib",
         "//source/common/common:utility_lib",
-        "//source/common/config:metadata_lib",
         "//source/common/http:utility_lib",
         "//source/common/request_info:utility_lib",
     ],
