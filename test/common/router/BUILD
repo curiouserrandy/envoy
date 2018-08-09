@@ -146,7 +146,7 @@ envoy_cc_test(
         "//source/common/request_info:dynamic_metadata_lib",
         "//source/common/router:header_formatter_lib",
         "//source/common/router:header_parser_lib",
-        "//source/common/router:string_accessor_lib",
+        "//source/common/request_info:string_accessor_lib",
         "//test/mocks/http:http_mocks",
         "//test/mocks/upstream:upstream_mocks",
         "//test/test_common:utility_lib",

@@ -6,9 +6,9 @@
 #include "common/config/metadata.h"
 #include "common/config/rds_json.h"
 #include "common/request_info/dynamic_metadata_impl.h"
+#include "common/request_info/string_accessor_impl.h"
 #include "common/router/header_formatter.h"
 #include "common/router/header_parser.h"
-#include "common/router/string_accessor_impl.h"
 
 #include "test/mocks/http/mocks.h"
 #include "test/mocks/upstream/mocks.h"
@@ -171,8 +171,9 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithUpstreamMetadataVariableMis
 
 TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithDynamicMetadataVariable) {
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData("testing", std::make_unique<StringAccessorImpl>("test_value"));
-  EXPECT_EQ("test_value", dynamic_metadata.getData<StringAccessor>("testing").asString());
+  dynamic_metadata.setData(
+      "testing", std::make_unique<::Envoy::RequestInfo::StringAccessorImpl>("test_value"));
+  EXPECT_EQ("test_value", dynamic_metadata.getData<::Envoy::RequestInfo::StringAccessor>("testing").asString());
 
   NiceMock<Envoy::RequestInfo::MockRequestInfo> request_info;
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
@@ -180,7 +181,7 @@ TEST_F(RequestInfoHeaderFormatterTest, TestFormatWithDynamicMetadataVariable) {
 
   testFormatting(request_info, "DYNAMIC_METADATA(\"testing\")", "test_value");
   testFormatting(request_info, "DYNAMIC_METADATA(\"testing2\")", "");
-  EXPECT_EQ("test_value", dynamic_metadata.getData<StringAccessor>("testing").asString());
+  EXPECT_EQ("test_value", dynamic_metadata.getData<::Envoy::RequestInfo::StringAccessor>("testing").asString());
 }
 
 namespace {
@@ -445,7 +446,7 @@ TEST(HeaderParserTest, TestParseInternal) {
   ON_CALL(request_info, startTime()).WillByDefault(Return(start_time));
 
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData("testing", std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData("testing", std::make_unique<::Envoy::RequestInfo::StringAccessorImpl>("test_value"));
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
   ON_CALL(Const(request_info), dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
@@ -604,7 +605,7 @@ route:
   ON_CALL(*host, metadata()).WillByDefault(Return(metadata));
 
   Envoy::RequestInfo::DynamicMetadataImpl dynamic_metadata;
-  dynamic_metadata.setData("testing", std::make_unique<StringAccessorImpl>("test_value"));
+  dynamic_metadata.setData("testing", std::make_unique<::Envoy::RequestInfo::StringAccessorImpl>("test_value"));
   ON_CALL(request_info, dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
   ON_CALL(Const(request_info), dynamicMetadata2()).WillByDefault(ReturnRef(dynamic_metadata));
 
